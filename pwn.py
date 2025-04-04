@@ -128,43 +128,30 @@ def change_mac(new_mac, connection_name):
 def check_internet():
     print(f"{Colors.BLUE}[+] Checking internet access...{Colors.ENDC}")
     
-    # List of reliable endpoints to check (IP and domain)
+    # List of reliable IPs (we avoid domains)
     endpoints = [
         ("8.8.8.8", "Google DNS"),
         ("1.1.1.1", "Cloudflare DNS"),
-        ("google.com", "Google Domain")
+        ("208.67.222.222", "OpenDNS"),
     ]
     
-    for endpoint, name in endpoints:
+    for ip, name in endpoints:
         try:
-            # Try ping first (for IP addresses)
-            if not endpoint.endswith('.com'):
-                subprocess.run(
-                    ["ping", "-c", "1", "-W", "5", endpoint],
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    timeout=10
-                )
-            else:
-                # Try DNS resolution for domains(May vring up false positives)
-                subprocess.run(
-                    ["nslookup", endpoint],
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    timeout=10
-                )
+            subprocess.run(
+                ["ping", "-c", "1", "-W", "5", ip],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10
+            )
             print(f"{Colors.GREEN}[+] Internet access confirmed via {name}!{Colors.ENDC}")
             return True
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            print(f"{Colors.YELLOW}[-] Failed to connect to {name}: {str(e)}{Colors.ENDC}")
-            continue
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            print(f"{Colors.YELLOW}[-] Ping failed for {name} ({ip}){Colors.ENDC}")
         except Exception as e:
-            print(f"{Colors.RED}[-] Unexpected error while checking {name}: {str(e)}{Colors.ENDC}")
-            continue
-    
-    print(f"{Colors.RED}[-] No internet access detected from any endpoint. Trying another MAC...{Colors.ENDC}")
+            print(f"{Colors.RED}[-] Error while pinging {name} ({ip}): {str(e)}{Colors.ENDC}")
+
+    print(f"{Colors.RED}[-] No internet access detected. Trying another MAC...{Colors.ENDC}")
     return False
 
 def get_active_wifi_connection():
