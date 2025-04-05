@@ -17,7 +17,7 @@ Automatically switches if the MAC doesn't work.
 
 1. Linux (of course)
 2. bettercap
-3. Root access (don’t be soft)
+3. sudo (don’t be soft)
 ### Clone the Repo
 ```bash
 git clone https://github.com/endafk/Pwn-Network.git
