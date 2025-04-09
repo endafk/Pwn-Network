@@ -84,30 +84,51 @@ def get_mac_addresses():
     # Remove existing mac_list.txt if it exists
     if os.path.exists("mac_list.txt"):
         os.remove("mac_list.txt")
+    
+    # Remove existing working_mac.txt if it exists
+    if os.path.exists("working_mac.txt"):
+        os.remove("working_mac.txt")
         
     print(f"{Colors.BLUE}[+] Scanning for MAC addresses...{Colors.ENDC}")
     
     # Run bettercap and capture its output
-    result = subprocess.run("sudo bettercap -eval 'net.probe on; sleep 5; net.show; quit'", 
-                          shell=True, capture_output=True, text=True)
-    
-    # Regex for MAC addresses (xx:xx:xx:xx:xx:xx format)
-    mac_pattern = re.compile(r'([0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2})')
-    
-    # Find all MAC addresses in the output
-    mac_addresses = list(set(mac_pattern.findall(result.stdout)))
-    
-    # Write only MAC addresses to the file
-    with open("mac_list.txt", "w") as file:
-        for mac in mac_addresses:
-            file.write(f"{mac}\n")
-    
-    if not mac_addresses:
-        print(f"{Colors.RED}[-] No MAC addresses found. Exiting.{Colors.ENDC}")
+    try:
+        print(f"{Colors.BLUE}[+] Running Bettercap command...{Colors.ENDC}")
+        result = subprocess.run(
+            ["sudo", "bettercap", "-eval", "net.probe on; sleep 5; net.show; quit"],
+            capture_output=True,
+            text=True
+        )
+        
+        print(f"{Colors.BLUE}[+] Bettercap stdout: {result.stdout[:200]}...{Colors.ENDC}")  # Show first 200 chars
+        if result.stderr:
+            print(f"{Colors.RED}[!] Bettercap stderr: {result.stderr}{Colors.ENDC}")
+        
+        # Regex for MAC addresses (xx:xx:xx:xx:xx:xx format)
+        mac_pattern = re.compile(r'([0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2})')
+        
+        # Find all MAC addresses in the output
+        mac_addresses = list(set(mac_pattern.findall(result.stdout)))
+        
+        print(f"{Colors.BLUE}[+] Found {len(mac_addresses)} MAC addresses in output{Colors.ENDC}")
+        if len(mac_addresses) > 0:
+            print(f"{Colors.BLUE}[+] First MAC found: {mac_addresses[0]}{Colors.ENDC}")
+        
+        # Write only MAC addresses to the file
+        with open("mac_list.txt", "w") as file:
+            for mac in mac_addresses:
+                file.write(f"{mac}\n")
+        
+        if not mac_addresses:
+            print(f"{Colors.RED}[-] No MAC addresses found. Exiting.{Colors.ENDC}")
+            sys.exit(1)
+        
+        print(f"{Colors.GREEN}[+] Found {len(mac_addresses)} unique MAC addresses{Colors.ENDC}")
+        return mac_addresses
+        
+    except Exception as e:
+        print(f"{Colors.RED}[!] Error running Bettercap: {str(e)}{Colors.ENDC}")
         sys.exit(1)
-    
-    print(f"{Colors.GREEN}[+] Found {len(mac_addresses)} unique MAC addresses{Colors.ENDC}")
-    return mac_addresses
 
 def change_mac(new_mac, connection_name):
     print(f"{Colors.BLUE}[+] Spoofing MAC Address: {new_mac}{Colors.ENDC}")
@@ -186,45 +207,44 @@ def get_active_wifi_connection():
         sys.exit(1)
 
 def main():
-
     parser = argparse.ArgumentParser(description='MAC Address Spoofer')
     args = parser.parse_args()
     
-
     print_banner()
     
     check_os()
-
     check_root()
-
     check_dependencies()
     
     connection_name = get_active_wifi_connection()
-
     mac_addresses = get_mac_addresses()
-    random.shuffle(mac_addresses)
     
     print(f"{Colors.BLUE}[+] Starting MAC address testing...{Colors.ENDC}")
-    print(f"{Colors.YELLOW}[!] This may take a while. Please be patient.{Colors.ENDC}")
+    print(f"{Colors.YELLOW}[!] This will test all MAC addresses. Please be patient.{Colors.ENDC}")
+    print(f"{Colors.YELLOW}[!] Working MACs will be saved to working_mac.txt as they are found{Colors.ENDC}")
     
-    working_mac_found = False
-    working_mac = None
+    working_macs_count = 0
+    
+    # Create empty working_mac.txt file
+    open("working_mac.txt", "w").close()
     
     for i, mac in enumerate(mac_addresses, 1):
-        print(f"{Colors.BLUE}[+] Trying MAC {i}/{len(mac_addresses)}: {mac}{Colors.ENDC}")
+        print(f"{Colors.BLUE}[+] Testing MAC {i}/{len(mac_addresses)}: {mac}{Colors.ENDC}")
         change_mac(mac, connection_name)
         time.sleep(5)  # Allow time for reconnection
         if check_internet():
-            print(f"{Colors.GREEN}[+] Success with MAC: {mac}{Colors.ENDC}")
-            working_mac_found = True
-            working_mac = mac
-            break
+            print(f"{Colors.GREEN}[+] Working MAC found: {mac}{Colors.ENDC}")
+            # Append the working MAC to file immediately
+            with open("working_mac.txt", "a") as f:
+                f.write(f"{mac}\n")
+            working_macs_count += 1
+            print(f"{Colors.GREEN}[+] MAC address saved to working_mac.txt{Colors.ENDC}")
     
-    if not working_mac_found:
-        print(f"{Colors.RED}[!] No working MAC address found. Try again later.{Colors.ENDC}")
+    if working_macs_count > 0:
+        print(f"{Colors.GREEN}[+] Found {working_macs_count} working MAC addresses{Colors.ENDC}")
+        print(f"{Colors.GREEN}[+] All working MACs have been saved to working_mac.txt{Colors.ENDC}")
     else:
-        print(f"{Colors.GREEN}[+] MAC spoofing completed successfully!{Colors.ENDC}")
-        print(f"{Colors.GREEN}[+] Your connection is now using the MAC address: {working_mac}{Colors.ENDC}")
+        print(f"{Colors.RED}[!] No working MAC addresses found. Try again later.{Colors.ENDC}")
     
 if __name__ == "__main__":
     main()
