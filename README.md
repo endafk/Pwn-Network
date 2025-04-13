@@ -1,7 +1,8 @@
 # MAC Address Spoofer
 
-# Pwn Pay-As-You-Go Wi-fi Networks
+# Pwn Pay-As-You-Go Wi-fi Networks 
 ## Because the router's "security" is a joke.
+# These Scripts bypasses MAC based Authentication, allowing you to spoof an already active user, and bypass the Captive Portal.
 
 ## Features
 
