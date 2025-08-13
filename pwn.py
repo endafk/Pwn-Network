@@ -160,8 +160,7 @@ def change_mac(new_mac, connection_name):
 
 def check_internet():
     print(f"{Colors.BLUE}[+] Checking internet access...{Colors.ENDC}")
-    
-       endpoints = [
+    endpoints = [
         ("8.8.8.8", "Google DNS"),
         ("1.1.1.1", "Cloudflare DNS"),
         ("208.67.222.222", "OpenDNS"),
@@ -188,11 +187,11 @@ def check_internet():
 
 def get_active_wifi_connection():
     try:
-            result = subprocess.run(
-            "nmcli -t -f NAME connection show --active",
-            shell=True,
-            capture_output=True,
-            text=True
+        result = subprocess.run(
+        "nmcli -t -f NAME connection show --active",
+        shell=True,
+        capture_output=True,
+        text=True
         )
         
         if result.stdout:
