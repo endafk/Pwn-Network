@@ -14,6 +14,12 @@
 
 I'm Working on it
 
+On the meantime use;
+```
+nmap -sn {subnet}
+```
+And work your way through regedit pain:).
+
 ## Installation
 - Just yank Bettercap from your package manager, or make it using go from wiki.
 ### Clone the Repo
