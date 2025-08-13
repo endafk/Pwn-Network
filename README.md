@@ -42,7 +42,7 @@ sudo ./connect.py
 # Notes
 
 - Both scripts require root privileges
-- The scripts will automatically detect your active WiFi connection(Connec t first before running them)
+- The scripts will automatically detect your active WiFi connection(Connect first before running them)
 - Only use this on your own network or have proper permission.
 
 ## Troubleshooting
