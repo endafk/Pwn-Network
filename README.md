@@ -23,7 +23,6 @@
 - Python 3.x
 - Bettercap installed
 - NetworkManager installed
-- Sudo/administrator privileges
 
 ## Installation
 
@@ -73,9 +72,11 @@ This script will:
 ### pwn.py
 - Uses Bettercap to scan for MAC addresses on the network
 - Tests each MAC address by:
+
   1. Changing the MAC address
   2. Cycling the WiFi connection
   3. Testing internet connectivity
+
 - Saves working MAC addresses to `working_mac.txt`
 
 ### connect.py
