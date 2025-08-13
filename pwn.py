@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import random
 import subprocess
 import time
@@ -131,26 +132,36 @@ def get_mac_addresses():
         sys.exit(1)
 
 def change_mac(new_mac, connection_name):
-    print(f"{Colors.BLUE}[+] Spoofing MAC Address: {new_mac}{Colors.ENDC}")
+    print(f"[+] Setting new MAC for '{connection_name}': {new_mac}")
 
-    subprocess.run(f'sudo nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}', shell=True)
+    subprocess.run(
+        f'nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}',
+        shell=True,
+        check=True
+    )
 
-    print(f"{Colors.BLUE}[+] Turning WiFi off...{Colors.ENDC}")
-    subprocess.run("sudo nmcli radio wifi off", shell=True)
-    time.sleep(2)  # Wait for WiFi to turn off
+    print(f"[+] Deactivating connection '{connection_name}'...")
 
-    print(f"{Colors.BLUE}[+] Turning WiFi on...{Colors.ENDC}")
-    subprocess.run("sudo nmcli radio wifi on", shell=True)
-    time.sleep(2)  # Wait for WiFi to turn on
+    subprocess.run(
+        f'nmcli connection down "{connection_name}"',
+        shell=True,
+        check=True
+    )
+    time.sleep(1)
 
-    print(f"{Colors.BLUE}[+] Reconnecting to {connection_name}...{Colors.ENDC}")
-    subprocess.run(f'sudo nmcli connection up "{connection_name}"', shell=True)
+    print(f"[+] Activating connection '{connection_name}' with new MAC...")
+
+    subprocess.run(
+        f'nmcli connection up "{connection_name}"',
+        shell=True,
+        check=True
+    )
+    print(f"[+] Connection command sent. Monitor status with 'nmcli device status'")
 
 def check_internet():
     print(f"{Colors.BLUE}[+] Checking internet access...{Colors.ENDC}")
     
-    # List of reliable IPs (we avoid domains)
-    endpoints = [
+       endpoints = [
         ("8.8.8.8", "Google DNS"),
         ("1.1.1.1", "Cloudflare DNS"),
         ("208.67.222.222", "OpenDNS"),
@@ -177,8 +188,7 @@ def check_internet():
 
 def get_active_wifi_connection():
     try:
-        # connection name (WiFi is typically first in the list)
-        result = subprocess.run(
+            result = subprocess.run(
             "nmcli -t -f NAME connection show --active",
             shell=True,
             capture_output=True,
@@ -186,14 +196,10 @@ def get_active_wifi_connection():
         )
         
         if result.stdout:
-            # Get all lines and filter out non-WiFi connections
             lines = result.stdout.strip().split('\n')
             
-            # The first line should be the WiFi connection
-            # We need to handle the case where the connection name might contain spaces
             connection_name = lines[0]
             
-            # If the connection name is in quotes, remove them
             if connection_name.startswith('"') and connection_name.endswith('"'):
                 connection_name = connection_name[1:-1]
                 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import sys
 import subprocess
@@ -74,22 +75,28 @@ def check_internet():
     return False
 
 def change_mac(new_mac, connection_name):
-    print(f"{Colors.BLUE}[+] Changing MAC Address to: {new_mac}{Colors.ENDC}")
+    print(f"[+] Setting new MAC for '{connection_name}': {new_mac}")
+    subprocess.run(
+        f'sudo nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}',
+        shell=True,
+        check=True # Fail hard if this command shits the bed
+    )
 
-    # Change the MAC address
-    subprocess.run(f'sudo nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}', shell=True)
+    print(f"[+] Deactivating connection '{connection_name}'...")
+    subprocess.run(
+        f'sudo nmcli connection down "{connection_name}"',
+        shell=True,
+        check=True
+    )
+    time.sleep(1)
 
-    print(f"{Colors.BLUE}[+] Turning WiFi off...{Colors.ENDC}")
-    subprocess.run("sudo nmcli radio wifi off", shell=True)
-    time.sleep(2)
-
-    print(f"{Colors.BLUE}[+] Turning WiFi on...{Colors.ENDC}")
-    subprocess.run("sudo nmcli radio wifi on", shell=True)
-    time.sleep(2)
-
-    print(f"{Colors.BLUE}[+] Reconnecting to {connection_name}...{Colors.ENDC}")
-    subprocess.run(f'sudo nmcli connection up "{connection_name}"', shell=True)
-    time.sleep(5)  # Give it some time to establish connection
+    print(f"[+] Activating connection '{connection_name}' with new MAC...")
+    subprocess.run(
+        f'sudo nmcli connection up "{connection_name}"',
+        shell=True,
+        check=True
+    )
+    print(f"[+] Connection command sent.")
 
 def load_working_macs():
     try:
