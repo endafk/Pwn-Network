@@ -15,10 +15,29 @@ class Colors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+def print_banner():
+    banner = f"""
+{Colors.BOLD}{Colors.BLUE}╔════════════════════════════════════════════════════════════════╗
+║    Telegram&Github - @EndAFK   MAC Address Spoofer             ║
+║                                                                ║
+║  This script automatically finds and tests MAC addresses       ║
+║  to find one that works with your WiFi network.                ║
+║                                                                ║
+║  Usage: sudo python3 pwn.py                                    ║
+║                                                                ║
+║  Requirements:                                                 ║
+║  - Linux operating system                                      ║
+║  - Bettercap installed                                         ║
+║  - NetworkManager installed                                    ║
+╚════════════════════════════════════════════════════════════════╝{Colors.ENDC}
+"""
+    print(banner)
+
+
 def check_root():
     if os.geteuid() != 0:
         print(f"{Colors.RED}[!] This script must be run as root (with sudo){Colors.ENDC}")
-        print(f"{Colors.YELLOW}    Please run: sudo python3 {sys.argv[0]}{Colors.ENDC}")
+        print(f"{Colors.YELLOW}    Please run: sudo {sys.argv[0]}{Colors.ENDC}")
         sys.exit(1)
 
 def get_active_wifi_connection():
@@ -74,29 +93,63 @@ def check_internet():
     print(f"{Colors.RED}[-] No internet access detected.{Colors.ENDC}")
     return False
 
-def change_mac(new_mac, connection_name):
-    print(f"[+] Setting new MAC for '{connection_name}': {new_mac}")
-    subprocess.run(
-        f'sudo nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}',
-        shell=True,
-        check=True # Fail hard if this command shits the bed
-    )
 
-    print(f"[+] Deactivating connection '{connection_name}'...")
-    subprocess.run(
-        f'sudo nmcli connection down "{connection_name}"',
-        shell=True,
-        check=True
-    )
-    time.sleep(1)
 
-    print(f"[+] Activating connection '{connection_name}' with new MAC...")
-    subprocess.run(
-        f'sudo nmcli connection up "{connection_name}"',
-        shell=True,
-        check=True
-    )
-    print(f"[+] Connection command sent.")
+def change_mac(new_mac: str, connection_name: str):
+    print(f"{Colors.BLUE}[+] Attempting to spoof MAC address...{Colors.ENDC}")
+
+    # Modify the connection's MAC
+    print(f"{Colors.BLUE}[+] Modifying MAC for '{connection_name}': {new_mac}{Colors.ENDC}")
+    try:
+        subprocess.run(
+            f'sudo nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}',
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print(f"{Colors.BLUE}[+] Changed Successfully.{Colors.ENDC}")
+    except subprocess.CalledProcessError as e:
+        print(f"{Colors.RED}[!] ERROR: Failed to modify MAC address.{Colors.ENDC}")
+        print(f"{Colors.RED}[!] STDERR: {e.stderr.strip()}{Colors.ENDC}")
+        # Ignore
+        return
+
+    # Deactivate the connection
+    print(f"{Colors.BLUE}[+] Deactivating connection '{connection_name}'...{Colors.ENDC}")
+    try:
+        subprocess.run(
+            f'sudo nmcli connection down "{connection_name}"',
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print(f"{Colors.BLUE}[+] Connection successfully deactivated.{Colors.ENDC}")
+        time.sleep(2)
+    except subprocess.CalledProcessError as e:
+        print(f"{Colors.RED}[!] ERROR: Failed to deactivate connection.{Colors.ENDC}")
+        print(f"{Colors.RED}[!] STDERR: {e.stderr.strip()}{Colors.ENDC}")
+
+    # Reactivate the connection
+    print(f"{Colors.BLUE}[+] Activating connection '{connection_name}'...{Colors.ENDC}")
+    try:
+        subprocess.run(
+            f'sudo nmcli connection up "{connection_name}"',
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print(f"{Colors.BLUE}[+] Connection successfully reactivated.{Colors.ENDC}")
+    except subprocess.CalledProcessError as e:
+        print(f"{Colors.RED}[!] ERROR: Failed to reactivate connection.{Colors.ENDC}")
+        print(f"{Colors.RED}[!] STDERR: {e.stderr.strip()}{Colors.ENDC}")
+
+    print(f"{Colors.BLUE}[+] ........{Colors.ENDC}")
+
+
+
 
 def load_working_macs():
     try:
@@ -134,6 +187,7 @@ def get_user_choice(max_choice):
             print(f"{Colors.RED}[!] Please enter a valid number{Colors.ENDC}")
 
 def main():
+    print_banner()
     check_root()
     connection_name = get_active_wifi_connection()
     

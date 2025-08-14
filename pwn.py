@@ -33,8 +33,6 @@ def print_banner():
 ║  Requirements:                                                 ║
 ║  - Linux operating system                                      ║
 ║  - Bettercap installed                                         ║
-║  - NetworkManager installed                                    ║
-║  - Sudo/administrator privileges                               ║
 ╚════════════════════════════════════════════════════════════════╝{Colors.ENDC}
 """
     print(banner)
@@ -53,7 +51,7 @@ def check_os():
 def check_root():
     if os.geteuid() != 0:
         print(f"{Colors.RED}[!] This script must be run as root (with sudo){Colors.ENDC}")
-        print(f"{Colors.YELLOW}    Please run: sudo python3 {sys.argv[0]}{Colors.ENDC}")
+        print(f"{Colors.YELLOW}    Please run: sudo {sys.argv[0]}{Colors.ENDC}")
         sys.exit(1)
 
 def check_dependencies():
@@ -131,32 +129,60 @@ def get_mac_addresses():
         print(f"{Colors.RED}[!] Error running Bettercap: {str(e)}{Colors.ENDC}")
         sys.exit(1)
 
-def change_mac(new_mac, connection_name):
-    print(f"[+] Setting new MAC for '{connection_name}': {new_mac}")
 
-    subprocess.run(
-        f'nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}',
-        shell=True,
-        check=True
-    )
+def change_mac(new_mac: str, connection_name: str):
+    print(f"{Colors.BLUE}[+] Attempting to spoof MAC address...{Colors.ENDC}")
 
-    print(f"[+] Deactivating connection '{connection_name}'...")
+    # Modify the connection's MAC
+    print(f"{Colors.BLUE}[+] Modifying MAC for '{connection_name}': {new_mac}{Colors.ENDC}")
+    try:
+        subprocess.run(
+            f'sudo nmcli connection modify "{connection_name}" wifi.cloned-mac-address {new_mac}',
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print(f"{Colors.BLUE}[+] Changed Successfully.{Colors.ENDC}")
+    except subprocess.CalledProcessError as e:
+        print(f"{Colors.RED}[!] ERROR: Failed to modify MAC address.{Colors.ENDC}")
+        print(f"{Colors.RED}[!] STDERR: {e.stderr.strip()}{Colors.ENDC}")
+        # Ignore
+        return
 
-    subprocess.run(
-        f'nmcli connection down "{connection_name}"',
-        shell=True,
-        check=True
-    )
-    time.sleep(1)
+    # Deactivate the connection
+    print(f"{Colors.BLUE}[+] Deactivating connection '{connection_name}'...{Colors.ENDC}")
+    try:
+        subprocess.run(
+            f'sudo nmcli connection down "{connection_name}"',
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print(f"{Colors.BLUE}[+] Connection successfully deactivated.{Colors.ENDC}")
+        time.sleep(2)
+    except subprocess.CalledProcessError as e:
+        print(f"{Colors.RED}[!] ERROR: Failed to deactivate connection.{Colors.ENDC}")
+        print(f"{Colors.RED}[!] STDERR: {e.stderr.strip()}{Colors.ENDC}")
 
-    print(f"[+] Activating connection '{connection_name}' with new MAC...")
+    # Reactivate the connection
+    print(f"{Colors.BLUE}[+] Activating connection '{connection_name}'...{Colors.ENDC}")
+    try:
+        subprocess.run(
+            f'sudo nmcli connection up "{connection_name}"',
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print(f"{Colors.BLUE}[+] Connection successfully reactivated.{Colors.ENDC}")
+    except subprocess.CalledProcessError as e:
+        print(f"{Colors.RED}[!] ERROR: Failed to reactivate connection.{Colors.ENDC}")
+        print(f"{Colors.RED}[!] STDERR: {e.stderr.strip()}{Colors.ENDC}")
 
-    subprocess.run(
-        f'nmcli connection up "{connection_name}"',
-        shell=True,
-        check=True
-    )
-    print(f"[+] Connection command sent. Monitor status with 'nmcli device status'")
+    print(f"{Colors.BLUE}[+] ........{Colors.ENDC}")
+
 
 def check_internet():
     print(f"{Colors.BLUE}[+] Checking internet access...{Colors.ENDC}")
